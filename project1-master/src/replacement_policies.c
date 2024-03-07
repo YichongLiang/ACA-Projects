@@ -142,19 +142,34 @@ void lru_prefer_clean_cache_access(struct replacement_policy *replacement_policy
                                    struct cache_system *cache_system, uint32_t set_idx,
                                    uint32_t tag)
 {
-    // update the LRU_PREFER_CLEAN replacement policy state given a new
-    // memory access
     struct lru_prefer_clean_metadata *metadata = (struct lru_prefer_clean_metadata *)replacement_policy->data;
     uint32_t set_base = set_idx * cache_system->associativity;
     metadata->access_counter++;
+    bool line_modified = false;
 
     for (uint32_t i = 0; i < cache_system->associativity; ++i) {
-        if (cache_system->cache_lines[set_base + i].tag == tag) {
+        struct cache_line *line = &cache_system->cache_lines[set_base + i];
+        if (line->tag == tag && line->status != INVALID) {
+            // Update the last access time
             metadata->last_access_times[set_base + i] = metadata->access_counter;
+            // If the cache line status is MODIFIED, it means it was a 'W' operation
+            line_modified = (line->status == MODIFIED);
             break;
         }
     }
+
+    // If a line was modified, update the is_dirty array
+    if (line_modified) {
+        for (uint32_t i = 0; i < cache_system->associativity; ++i) {
+            struct cache_line *line = &cache_system->cache_lines[set_base + i];
+            if (line->tag == tag && line->status == MODIFIED) {
+                metadata->is_dirty[set_base + i] = 1; // Mark the line as dirty
+                break;
+            }
+        }
+    }
 }
+
 
 uint32_t lru_prefer_clean_eviction_index(struct replacement_policy *replacement_policy,
                                          struct cache_system *cache_system, uint32_t set_idx) {
