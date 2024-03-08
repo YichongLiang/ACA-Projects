@@ -66,10 +66,7 @@ void lru_replacement_policy_cleanup(struct replacement_policy *replacement_polic
     // TODO cleanup any additional memory that you allocated in the
     // lru_replacement_policy_new function.
     struct lru_metadata *metadata = (struct lru_metadata *)replacement_policy->data;
-    if (metadata) {
-        free(metadata->last_access_times);
-        free(metadata);
-    }
+    free(metadata);
 }
 
 struct replacement_policy *lru_replacement_policy_new(uint32_t sets, uint32_t associativity)
@@ -158,7 +155,7 @@ void lru_prefer_clean_cache_access(struct replacement_policy *replacement_policy
         }
     }
 
-    // If a line was modified, update the is_dirty array
+    // If a line was modified update the is_dirty array
     if (line_modified) {
         for (uint32_t i = 0; i < cache_system->associativity; ++i) {
             struct cache_line *line = &cache_system->cache_lines[set_base + i];
@@ -220,11 +217,7 @@ void lru_prefer_clean_replacement_policy_cleanup(struct replacement_policy *repl
     // cleanup any additional memory that you allocated in the
     // lru_prefer_clean_replacement_policy_new function.
     struct lru_prefer_clean_metadata *metadata = (struct lru_prefer_clean_metadata *)replacement_policy->data;
-    if (metadata) {
-        free(metadata->last_access_times);
-        free(metadata->is_dirty);
-        free(metadata);
-    }
+    free(metadata);
 }
 
 struct replacement_policy *lru_prefer_clean_replacement_policy_new(uint32_t sets,
