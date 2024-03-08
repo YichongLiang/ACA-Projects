@@ -150,20 +150,19 @@ void lru_prefer_clean_cache_access(struct replacement_policy *replacement_policy
     for (uint32_t i = 0; i < cache_system->associativity; ++i) {
         struct cache_line *line = &cache_system->cache_lines[set_base + i];
         if (line->tag == tag && line->status != INVALID) {
-            // Update the last access time
+            // update the last access time
             metadata->last_access_times[set_base + i] = metadata->access_counter;
-            // If the cache line status is MODIFIED, it means it was a 'W' operation
             line_modified = (line->status == MODIFIED);
             break;
         }
     }
 
-    // If a line was modified update the is_dirty array
+    // if a line was modified update the is_dirty array
     if (line_modified) {
         for (uint32_t i = 0; i < cache_system->associativity; ++i) {
             struct cache_line *line = &cache_system->cache_lines[set_base + i];
             if (line->tag == tag && line->status == MODIFIED) {
-                metadata->is_dirty[set_base + i] = 1; // Mark the line as dirty
+                metadata->is_dirty[set_base + i] = 1; // mark the line as dirty
                 break;
             }
         }
@@ -176,40 +175,38 @@ uint32_t lru_prefer_clean_eviction_index(struct replacement_policy *replacement_
     struct lru_prefer_clean_metadata *metadata = (struct lru_prefer_clean_metadata *)replacement_policy->data;
     uint32_t set_base = set_idx * cache_system->associativity;
 
-    int clean_index = -1; // Index of the oldest clean line within the set
-    int dirty_index = -1; // Index of the oldest dirty line within the set
-    uint32_t oldest_clean_time = UINT32_MAX; // Oldest access time among clean lines
-    uint32_t oldest_dirty_time = UINT32_MAX; // Oldest access time among dirty lines
+    int clean_index = -1; // index of the oldest clean line within the set
+    int dirty_index = -1; // index of the oldest dirty line within the set
+    uint32_t oldest_clean_time = UINT32_MAX; // oldest access time among clean lines
+    uint32_t oldest_dirty_time = UINT32_MAX; // oldest access time among dirty lines
 
-    // Iterate over all cache lines within the set to find the eviction candidate
+    // iterate over all cache lines within the set to find the eviction candidate
     for (uint32_t i = 0; i < cache_system->associativity; ++i) {
-        uint32_t index = i; // Local index within the set
+        uint32_t index = i; 
         uint32_t last_access_time = metadata->last_access_times[set_base + index];
         uint8_t is_dirty = metadata->is_dirty[set_base + index];
 
-        // Identify the oldest clean line
+        // identify the oldest clean line else if oldest dirty line
         if (!is_dirty && last_access_time < oldest_clean_time) {
             oldest_clean_time = last_access_time;
             clean_index = index;
         }
-        // Separately, identify the oldest dirty line
         else if (is_dirty && last_access_time < oldest_dirty_time) {
             oldest_dirty_time = last_access_time;
             dirty_index = index;
         }
     }
 
-    // Prefer to evict the oldest clean line if it exists
+    // prefer to evict the oldest clean line if it exists if no oldest dirty line
     if (clean_index != -1) {
         return clean_index;
     }
-    // If no clean line is available for eviction, choose the oldest dirty line
     else if (dirty_index != -1) {
         return dirty_index;
     }
 
-    // Should not reach here in a properly functioning cache system
-    // Indicates an error or unexpected condition
+    
+    // indicates an error if reaches
     return UINT32_MAX;
 }
 
