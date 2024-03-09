@@ -116,7 +116,7 @@ void rand_replacement_policy_cleanup(struct replacement_policy *replacement_poli
 struct replacement_policy *rand_replacement_policy_new(uint32_t sets, uint32_t associativity)
 {
     // Seed randomness
-    srand(time(NULL));
+    //srand(time(NULL));
 
     struct replacement_policy *rand_rp = malloc(sizeof(struct replacement_policy));
     rand_rp->cache_access = &rand_cache_access;

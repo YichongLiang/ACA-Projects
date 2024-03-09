@@ -16,6 +16,7 @@
 
 int main(int argc, char **argv)
 {
+    srand(time(NULL));
     // Parse the arguments.
     if (argc != 5) {
         fprintf(stderr, "Incorrect number of arguments.\n");
