@@ -27,26 +27,22 @@ struct prefetcher *null_prefetcher_new()
 // ============================================================================
 // TODO feel free to create additional structs/enums as necessary
 
+struct sequential_data {
+    int n;  
+};
+
 uint32_t sequential_handle_mem_access(struct prefetcher *prefetcher,
                                       struct cache_system *cache_system, uint32_t address,
                                       bool is_miss)
 {
     // TODO: Return the number of lines that were prefetched.
-    if (!is_miss) {
-        return 0;
+    if(((struct sequential_data*) prefetcher->data)->n > 0){
+	    for(int i = 1; i <= ((struct sequential_data*) prefetcher->data)->n; i++){
+		    uint32_t fetch_address = address + i*cache_system->line_size;
+    		cache_system_mem_access(cache_system, fetch_address, 'R', true);
+	    }
     }
-
-    uint32_t *data = (uint32_t *)prefetcher->data;
-    uint32_t prefetch_amount = *data;
-    uint32_t lines_prefetched = 0;
-
-    for (uint32_t i = 1; i <= prefetch_amount; i++) {
-        uint32_t prefetch_address = address + i * cache_system->line_size;
-        cache_system_mem_access(cache_system, prefetch_address, 'R', true); 
-        lines_prefetched++;
-    }
-
-    return lines_prefetched;
+    return ((struct sequential_data*) prefetcher->data)->n;;
 }
 
 void sequential_cleanup(struct prefetcher *prefetcher)
@@ -64,11 +60,13 @@ struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
 
     // TODO allocate any additional memory needed to store metadata here and
     // assign to sequential_prefetcher->data.
-    sequential_prefetcher->data = calloc(1, sizeof(uint32_t));
-    *(uint32_t *)sequential_prefetcher->data = prefetch_amount;
+    struct sequential_data *new_data = malloc(sizeof(struct sequential_data));
+    new_data->n = prefetch_amount;
+    sequential_prefetcher->data = new_data;
 
     return sequential_prefetcher;
 }
+
 
 // Adjacent Prefetcher
 // ============================================================================
@@ -77,13 +75,11 @@ uint32_t adjacent_handle_mem_access(struct prefetcher *prefetcher,
                                     bool is_miss)
 {
     // TODO perform the necessary prefetches for the adjacent strategy.
-    if (!is_miss) {
-        return 0;
-    }
+    
     // TODO: Return the number of lines that were prefetched.
     uint32_t prefetch_address = address + cache_system->line_size;
     cache_system_mem_access(cache_system, prefetch_address, 'R', true);
-    return 1;
+    return 1; 
 }
 
 void adjacent_cleanup(struct prefetcher *prefetcher)
