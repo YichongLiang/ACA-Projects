@@ -4,6 +4,7 @@
 //
 
 #include "memory_system.h"
+#include "math.h"
 
 struct cache_system *cache_system_new(uint32_t line_size, uint32_t sets, uint32_t associativity)
 {
@@ -15,9 +16,9 @@ struct cache_system *cache_system_new(uint32_t line_size, uint32_t sets, uint32_
     cs->stats = stats;
 
     // TODO: calculate the index bits, offset bits and tag bits.
-    cs->index_bits = 0;
-    cs->offset_bits = 0;
-    cs->tag_bits = 0;
+    cs->index_bits = log2(sets);
+    cs->offset_bits = log2(line_size);
+    cs->tag_bits = 32 - cs->index_bits - cs->offset_bits;
 
     cs->offset_mask = 0xffffffff >> (32 - cs->offset_bits);
     cs->set_index_mask = 0xffffffff >> cs->tag_bits;
@@ -172,5 +173,12 @@ struct cache_line *cache_system_find_cache_line(struct cache_system *cache_syste
     // TODO Return a pointer to the cache line within the given set that has
     // the given tag. If no such element exists, then return NULL.
 
-    return NULL;
+    int32_t a = cache_system->associativity;
+    int s = set_idx * a;
+    for(int i=s;i<s+a;i++){
+        if (cache_system->cache_lines[i].tag == tag) {
+            return &cache_system->cache_lines[i];
+            }
+        }
+  	return NULL;
 }

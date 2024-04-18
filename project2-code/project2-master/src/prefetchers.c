@@ -32,13 +32,28 @@ uint32_t sequential_handle_mem_access(struct prefetcher *prefetcher,
                                       bool is_miss)
 {
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+    if (!is_miss) {
+        return 0;
+    }
+
+    uint32_t *data = (uint32_t *)prefetcher->data;
+    uint32_t prefetch_amount = *data;
+    uint32_t lines_prefetched = 0;
+
+    for (uint32_t i = 1; i <= prefetch_amount; i++) {
+        uint32_t prefetch_address = address + i * cache_system->line_size;
+        cache_system_mem_access(cache_system, prefetch_address, 'R', true); 
+        lines_prefetched++;
+    }
+
+    return lines_prefetched;
 }
 
 void sequential_cleanup(struct prefetcher *prefetcher)
 {
     // TODO cleanup any additional memory that you allocated in the
     // sequential_prefetcher_new function.
+    free(prefetcher->data);
 }
 
 struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
@@ -49,6 +64,8 @@ struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
 
     // TODO allocate any additional memory needed to store metadata here and
     // assign to sequential_prefetcher->data.
+    sequential_prefetcher->data = calloc(1, sizeof(uint32_t));
+    *(uint32_t *)sequential_prefetcher->data = prefetch_amount;
 
     return sequential_prefetcher;
 }
@@ -60,15 +77,20 @@ uint32_t adjacent_handle_mem_access(struct prefetcher *prefetcher,
                                     bool is_miss)
 {
     // TODO perform the necessary prefetches for the adjacent strategy.
-
+    if (!is_miss) {
+        return 0;
+    }
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+    uint32_t prefetch_address = address + cache_system->line_size;
+    cache_system_mem_access(cache_system, prefetch_address, 'R', true);
+    return 1;
 }
 
 void adjacent_cleanup(struct prefetcher *prefetcher)
 {
     // TODO cleanup any additional memory that you allocated in the
     // adjacent_prefetcher_new function.
+    free(prefetcher->data);
 }
 
 struct prefetcher *adjacent_prefetcher_new()
@@ -91,13 +113,26 @@ uint32_t custom_handle_mem_access(struct prefetcher *prefetcher, struct cache_sy
     // TODO perform the necessary prefetches for your custom strategy.
 
     // TODO: Return the number of lines that were prefetched.
-    return 0;
+    if (!is_miss) {
+        return 0;
+    }
+
+    // Hypothetical stride calculation and prefetching logic
+    // Assuming stride-based prefetching
+    int32_t *last_address = (int32_t *)prefetcher->data;
+    int32_t stride = address - *last_address;
+    *last_address = address;
+
+    uint32_t prefetch_address = address + stride;
+    cache_system_mem_access(cache_system, prefetch_address, 'R', true);
+    return 1;
 }
 
 void custom_cleanup(struct prefetcher *prefetcher)
 {
     // TODO cleanup any additional memory that you allocated in the
     // custom_prefetcher_new function.
+    free(prefetcher->data);
 }
 
 struct prefetcher *custom_prefetcher_new()
@@ -108,6 +143,7 @@ struct prefetcher *custom_prefetcher_new()
 
     // TODO allocate any additional memory needed to store metadata here and
     // assign to custom_prefetcher->data.
+    custom_prefetcher->data = calloc(1, sizeof(int32_t));
 
     return custom_prefetcher;
 }
