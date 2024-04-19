@@ -109,9 +109,6 @@ uint32_t custom_handle_mem_access(struct prefetcher *prefetcher, struct cache_sy
     // TODO perform the necessary prefetches for your custom strategy.
 
     // TODO: Return the number of lines that were prefetched.
-    if (!is_miss) {
-        return 0;
-    }
 
     // Hypothetical stride calculation and prefetching logic
     // Assuming stride-based prefetching
