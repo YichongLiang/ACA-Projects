@@ -116,8 +116,7 @@ uint32_t custom_handle_mem_access(struct prefetcher *prefetcher, struct cache_sy
     int32_t stride = address - *last_address;
     *last_address = address;
 
-    uint32_t prefetch_address = address + stride;
-    cache_system_mem_access(cache_system, prefetch_address, 'R', true);
+    cache_system_mem_access(cache_system, address + stride, 'R', true);
     return 1;
 }
 
