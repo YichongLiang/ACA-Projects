@@ -2,7 +2,7 @@
 
 PROJECT_NAME=project2
 
-if [[ ! -f README.md ]]; then
+if [[ ! -f PREFETCHER.md ]]; then
     echo "This script MUST be run from the same directory as README.md" 1>&2
     exit 1
 fi
