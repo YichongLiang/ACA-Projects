@@ -103,53 +103,31 @@ struct prefetcher *adjacent_prefetcher_new()
 
 // Custom Prefetcher
 // ============================================================================
-struct adaptive_prefetch_data {
+struct custom_prefetch_data {
     int32_t last_address;
-    int32_t local_strides[3];  // Local history buffer
-    int32_t global_stride;     // Most effective stride observed
-    int local_index;           // Index for local strides
-    uint32_t local_hits;       // Successful prefetch count based on local stride
-    uint32_t global_hits;      // Successful prefetch count based on global stride
+    int32_t last_stride;
+    int valid;  // Indicates if the last_stride is valid
 };
 
 
-
 uint32_t custom_handle_mem_access(struct prefetcher *prefetcher, struct cache_system *cache_system,
-                                  uint32_t address, bool is_miss)
-{
-    struct adaptive_prefetch_data *data = (struct adaptive_prefetch_data *)prefetcher->data;
+                                  uint32_t address, bool is_miss) {
+    struct custom_prefetch_data *data = (struct custom_prefetch_data *)prefetcher->data;
     if (is_miss) {
-        int32_t current_stride = address - data->last_address;
+        if (data->valid) {
+            int32_t current_stride = address - data->last_address;
+            uint32_t prefetch_address = address + data->last_stride;
+            cache_system_mem_access(cache_system, prefetch_address, 'R', true);
+            data->last_stride = current_stride;
+        } else {
+            data->valid = 1;
+        }
+
         data->last_address = address;
-
-        // Update local stride history
-        data->local_strides[data->local_index % 3] = current_stride;
-        data->local_index++;
-
-        // Determine most successful stride
-        int32_t stride_to_use = data->global_stride;
-        if (data->local_hits > data->global_hits && data->local_index >= 3) {
-            stride_to_use = (data->local_strides[0] + data->local_strides[1] + data->local_strides[2]) / 3;
-        }
-
-        // Prefetch using the selected stride
-        uint32_t prefetch_address = address + stride_to_use;
-        cache_system_mem_access(cache_system, prefetch_address, 'R', true);
-
-        // Update hit statistics
-        if (stride_to_use == current_stride) {
-            if (stride_to_use == data->global_stride) {
-                data->global_hits++;
-            } else {
-                data->local_hits++;
-            }
-        }
-
         return 1;  // One line prefetched
     }
-    return 0;
+    return 0;  // No prefetch occurs if there is no cache miss
 }
-
 
 
 void custom_cleanup(struct prefetcher *prefetcher)
@@ -159,20 +137,13 @@ void custom_cleanup(struct prefetcher *prefetcher)
     free(prefetcher->data);
 }
 
-struct prefetcher *custom_prefetcher_new()
-{
+struct prefetcher *custom_prefetcher_new() {
     struct prefetcher *custom_prefetcher = calloc(1, sizeof(struct prefetcher));
-    struct adaptive_prefetch_data *data = calloc(1, sizeof(struct adaptive_prefetch_data));
+    struct custom_prefetch_data *data = calloc(1, sizeof(struct custom_prefetch_data));
 
-    // TODO allocate any additional memory needed to store metadata here and
-    // assign to custom_prefetcher->data.
-
-    data->last_address = -1;
-    memset(data->local_strides, 0, sizeof(data->local_strides));
-    data->global_stride = 0;
-    data->local_index = 0;
-    data->local_hits = 0;
-    data->global_hits = 0;
+    data->last_address = 0;
+    data->last_stride = 0;
+    data->valid = 0;
 
     custom_prefetcher->data = data;
     custom_prefetcher->handle_mem_access = &custom_handle_mem_access;
@@ -180,5 +151,6 @@ struct prefetcher *custom_prefetcher_new()
 
     return custom_prefetcher;
 }
+
 
 
